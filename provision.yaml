@@ -1,0 +1,48 @@
+- hosts: hyperv_cluster_host
+  become_method: runas
+  tasks:
+    - name: provision ent1deployhub1
+      win_hyperv_win_vm:
+        admin_password: "{{ windows_admin_password }}"
+        gateway: "10.152.30.1"
+        dns_addresses: ["10.152.30.26","10.153.34.26"]
+        ip_address: "10.152.30.41" #do not include prefix
+        vm_name: "ENT1DEPLOYHUB1"
+        switch_name: "Admin(30)"
+        iso_origin: "C:\\ClusterStorage\\Volume70\\SW_DVD9_Win_Server_STD_CORE_2016_64Bit_English_-4_DC_STD_MLF_X21-70526.ISO"
+        destination_volume: "C:\\ClusterStorage\\Volume71\\"
+        vlan_id: 30
+    - name: provision ent1log1
+      win_hyperv_cloudinit:
+        root_public_key: "{{ hyperv_root_pubkey }}"
+        gateway: "10.152.30.1"
+        dns_addresses: ["10.152.27.26","10.1.1.26"]
+        ip_address: "10.152.30.32/24"
+        vm_name: "ENT1LOG1"
+        fqdn: "ent1log1.entech.local"
+        switch_name: "Admin(30)"
+        memory_startup_bytes: "{{ 8 * 1024 * 1024 * 1024 | int }}"
+        vhdx_origin: "C:\\ClusterStorage\\Volume70\\ubuntu-cloudimg.vhdx"
+        destination_volume: "C:\\ClusterStorage\\Volume70"
+        vlan_id: 30
+
+- hosts: win_auto_provision
+  gather_facts: false
+  tasks:
+    - name: set winrm transport
+      set_fact:
+        ansible_winrm_transport: credssp
+    - name: set winrm user
+      set_fact:
+        ansible_user: "{{ windows_admin_user }}"
+    - name: set winrm password
+      set_fact:
+        ansible_password: "{{ windows_admin_password }}"
+    - name: set winrm ip
+      set_fact:
+        ansible_host: "{{ ansible_ip }}"
+    - name: set winrm
+      set_fact:
+        ansible_winrm_kerberos_delegation: no
+    - name: test setup
+      setup:
